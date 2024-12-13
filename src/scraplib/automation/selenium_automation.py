@@ -12,11 +12,14 @@ from selenium.webdriver.common.by import By
 
 from scraplib.automation.web_automation import WebAutomation
 from scraplib.automation.element_types import AutomationConfig, ElementConfig
+from selenium.webdriver.chrome.options import Options
 
 class SeleniumAutomation(WebAutomation):
     
     def setup(self, config: AutomationConfig) :
-        self.driver = webdriver.Chrome()
+        chrome_options = Options()
+        chrome_options.page_load_strategy = 'eager'
+        self.driver = webdriver.Chrome(chrome_options)
         self.driver.get(config.url)
         
         # iframe = self.get_element_by_config(ElementConfig(id="iframe-login", BY='id'))
@@ -49,12 +52,16 @@ class SeleniumAutomation(WebAutomation):
         
         xpath = ""
         if element_config.BY == 'text':
-            xpath = f"//*[contains(text(),'{element_config.id}')]"
+            xpath = f"contains(text(),'{element_config.id}')"
         elif element_config.BY == 'placeholder':
-            xpath = f"//*[@placeholder='{element_config.id}']"
+            xpath = f"@placeholder='{element_config.id}'"
+        elif element_config.BY == 'class name':
+            xpath = f"contains(@class, '{element_config.id}')"
         if(element_config.parentSelecter):
             for prefix in element_config.parentSelecter.split('.')[::-1]:
                 xpath = add_xpath_prefix(prefix, xpath)
+        else:
+            xpath = f'//*[{xpath}]' 
         
         return xpath
         
@@ -62,7 +69,7 @@ class SeleniumAutomation(WebAutomation):
         selecter_config = namedtuple('selecter_config', ["value", "selecter"])
         
         
-        if element_config.BY  in ["text", "placeholder"]:
+        if element_config.BY  in ["text", "placeholder", 'class name']:
            xpath = self.__construct_xpath(element_config)
            return selecter_config(value=xpath, selecter=By.XPATH)
         else:
@@ -83,7 +90,7 @@ class SeleniumAutomation(WebAutomation):
         
     def click_element(self, element_config: ElementConfig):
         elem = self.get_element_by_config(element_config)
-        print('elem: ', elem.is_displayed(), elem.is_enabled(), elem.get_dom_attribute("class"))
+        print('elem: ',element_config, elem.is_displayed(), elem.is_enabled(), elem.get_dom_attribute("class"))
         elem.click() 
 
 
